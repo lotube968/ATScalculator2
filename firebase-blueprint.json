@@ -1,0 +1,277 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the tipping calculator app.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "shopName": {
+          "type": "string",
+          "description": "The name of the user's shop."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "The user's mobile phone number."
+        },
+        "upiId": {
+          "type": "string",
+          "description": "The user's UPI ID for payments."
+        },
+        "subscriptionStatus": {
+          "type": "string",
+          "description": "The status of the user's subscription.",
+          "enum": [
+            "active",
+            "inactive",
+            "reactive"
+          ]
+        },
+        "subscriptionPlan": {
+          "type": "string",
+          "description": "The user's selected subscription plan.",
+          "enum": [
+            "none",
+            "basic",
+            "premium",
+            "trial"
+          ]
+        },
+        "subscriptionUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the subscription was last updated."
+        },
+        "premiumTrialExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the premium trial expires."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Indicates if the user has admin privileges."
+        },
+        "otpRequestTimestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the user requested an OTP, to trigger admin action."
+        },
+        "otpRequestCount": {
+          "type": "number",
+          "description": "Tracks how many times a user has requested an OTP."
+        },
+        "otpSent": {
+          "type": "boolean",
+          "description": "Indicates whether the admin has sent the OTP to the user."
+        },
+        "isBlocked": {
+          "type": "boolean",
+          "description": "Indicates if the user's account is blocked by an admin."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "shopName",
+        "mobileNumber",
+        "upiId",
+        "subscriptionPlan"
+      ]
+    },
+    "Calculation": {
+      "title": "Calculation",
+      "type": "object",
+      "description": "Represents a single calculation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the calculation."
+        },
+        "expression": {
+          "type": "string",
+          "description": "The calculation expression."
+        },
+        "result": {
+          "type": "string",
+          "description": "The result of the calculation."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the calculation was made."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who made the calculation."
+        }
+      },
+      "required": [
+        "id",
+        "expression",
+        "result",
+        "createdAt",
+        "userId"
+      ]
+    },
+    "KhataEntry": {
+      "title": "Khata Entry",
+      "type": "object",
+      "description": "Represents a single entry in the Khata book.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Khata entry."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the customer or supplier."
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone number of the customer or supplier."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount due. Positive for receivables, negative for payables."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of entry",
+          "enum": ["customer", "supplier"]
+        },
+        "lastActivity": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last activity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user this entry belongs to."
+        }
+      },
+      "required": ["id", "name", "phone", "amount", "type", "lastActivity", "userId"]
+    },
+     "Transaction": {
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a single transaction within a Khata entry.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of transaction.",
+          "enum": ["gave", "got"]
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the transaction."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the transaction was made."
+        }
+      },
+      "required": ["id", "type", "amount", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "email_password"
+    ],
+    "customClaims": {
+      "admin": {
+        "type": "boolean"
+      }
+    }
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Path-based ownership for user data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        },
+        "subcollections": [
+          {
+            "path": "/calculations/{calculationId}",
+            "definition": {
+              "entityName": "Calculation",
+              "schema": {
+                "$ref": "#/backend/entities/Calculation"
+              },
+              "description": "Stores calculations for a specific user. Path-based ownership ensures that users can only access their own calculations.",
+              "params": [
+                {
+                  "name": "calculationId",
+                  "description": "The unique identifier for the calculation."
+                }
+              ]
+            }
+          },
+          {
+            "path": "/khataEntries/{khataEntryId}",
+            "definition": {
+                "entityName": "KhataEntry",
+                "schema": {
+                    "$ref": "#/backend/entities/KhataEntry"
+                },
+                "description": "Stores khata book entries for a specific user.",
+                "params": [
+                    {
+                        "name": "khataEntryId",
+                        "description": "The unique identifier for the khata entry."
+                    }
+                ]
+            },
+            "subcollections": [
+              {
+                "path": "/transactions/{transactionId}",
+                "definition": {
+                  "entityName": "Transaction",
+                  "schema": {
+                    "$ref": "#/backend/entities/Transaction"
+                  },
+                  "description": "Stores all transactions for a specific Khata entry.",
+                  "params": [
+                    {
+                      "name": "transactionId",
+                      "description": "The unique identifier for the transaction."
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support a calculator application with user-specific history.  The top-level `users` collection stores basic user profiles.  A `calculations` subcollection is nested under each user's document. This approach enforces strong data ownership, as security rules can easily restrict access to a user's own `calculations` subcollection based on their UID in the path. This avoids the need for querying and filtering on a `userId` field in a global `calculations` collection, making security rules simpler and more performant."
+  }
+}

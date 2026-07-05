@@ -1,0 +1,121 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSuperAdmin() {
+      return request.auth.token.email == 'lotube968@gmail.com';
+    }
+
+    function isAdmin() {
+      // Allow if the user has the 'admin' custom claim OR if they are the super admin.
+      return request.auth.token.admin == true || isSuperAdmin();
+    }
+
+    /**
+     * @description Enforces access control for the /users/{userId} collection.
+     * @path /users/{userId}
+     * @allow (create) User with UID 'user123' can create their own profile.
+     * @allow (get) User with UID 'user123' can get their profile.
+     * @allow (update) User with UID 'user123' can update their profile.
+     * @allow (delete) User with UID 'user123' can delete their profile.
+     * @deny (create) User with UID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (get) User with UID 'user456' cannot get the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      
+      // Super Admin can read and write all user docs, but can't be deleted by others.
+      // Regular admins can read all user docs.
+      // Regular users can only read/write their own doc.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if (isOwner(userId) && !isSuperAdmin()) || (isAdmin() && resource.data.email != 'lotube968@gmail.com');
+    }
+
+    /**
+     * @description Enforces access control for the /users/{userId}/calculations/{calculationId} collection.
+     * @path /users/{userId}/calculations/{calculationId}
+     * @allow (create) User with UID 'user123' can create a calculation under their profile.
+     * @allow (get) User with UID 'user123' can get a calculation under their profile.
+     * @allow (update) User with UID 'user123' can update a calculation under their profile.
+     * @allow (delete) User with UID 'user123' can delete a calculation under their profile.
+     * @deny (create) User with UID 'user456' cannot create a calculation under user 'user123''s profile.
+     * @deny (get) User with UID 'user456' cannot get a calculation under user 'user123''s profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/calculations/{calculationId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+      /**
+       * @description Enforces access control for the /users/{userId}/khataEntries/{khataEntryId} collection.
+       * @path /users/{userId}/khataEntries/{khataEntryId}
+       * @allow (create) User with UID 'user123' can create a khata entry under their profile.
+       * @allow (get) User with UID 'user123' can get a khata entry under their profile.
+       * @allow (update) User with UID 'user123' can update a khata entry under their profile.
+       * @allow (delete) User with UID 'user123' can delete a khata entry under their profile.
+       * @deny (create) User with UID 'user456' cannot create a khata entry under user 'user123''s profile.
+       * @deny (get) User with UID 'user456' cannot get a khata entry under user 'user123''s profile.
+       * @principle Enforces document ownership for all operations.
+       */
+      match /users/{userId}/khataEntries/{khataEntryId} {
+        function isOwner(userId) {
+          return request.auth.uid == userId;
+        }
+
+        function isSignedIn() {
+          return request.auth != null;
+        }
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+
+        /**
+         * @description Enforces access control for the /users/{userId}/khataEntries/{khataEntryId}/transactions/{transactionId} collection.
+         * @path /users/{userId}/khataEntries/{khataEntryId}/transactions/{transactionId}
+         * @allow (create) User with UID 'user123' can create a transaction under their khata entry.
+         * @allow (get) User with UID 'user123' can get a transaction under their khata entry.
+         * @allow (update) User with UID 'user123' can update a transaction under their khata entry.
+         * @allow (delete) User with UID 'user123' can delete a transaction under their khata entry.
+         * @deny (create) User with UID 'user456' cannot create a transaction under user 'user123''s khata entry.
+         * @deny (get) User with UID 'user456' cannot get a transaction under user 'user_123''s khata entry.
+         * @principle Enforces document ownership for all operations.
+         */
+        match /transactions/{transactionId} {
+          function isKhataOwner(userId) {
+            return request.auth.uid == userId;
+          }
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId);
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+      }
+  }
+}
+
+    
